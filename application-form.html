@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подача Заяв - СБУ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                        url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c') no-repeat center center fixed;
+            background-size: cover;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background: #1a1a1a;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid #00b0ff;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00b0ff;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            text-transform: uppercase;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 1em;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px 8px 8px 35px;
+            border: 1px solid #00b0ff;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            font-size: 0.9em;
+            box-sizing: border-box;
+        }
+
+        .form-group i {
+            position: absolute;
+            left: 10px;
+            top: 35px;
+            color: #00b0ff;
+            font-size: 1.2em;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: #00b0ff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #0096db;
+        }
+
+        .success-message {
+            text-align: center;
+            color: #00ff00;
+            margin-top: 10px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .my-applications {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .my-applications.active {
+            display: block;
+        }
+
+        .application-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .application-item {
+            background: #0d1a26;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+        }
+
+        .application-item p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .application-item p strong {
+            color: #00b0ff;
+        }
+
+        .application-item .status {
+            color: #00ff00;
+        }
+
+        .application-item .status.rejected {
+            color: #ff4444;
+        }
+
+        .application-item .status.pending {
+            color: #ffa500;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                width: 100%;
+                border-radius: 0;
+                border: none;
+            }
+            h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Подача Заяв - СБУ</h1>
+        <form id="application-form">
+            <div class="form-group">
+                <label for="from-name">Ім'я та Прізвище (від кого):</label>
+                <i class="fas fa-user"></i>
+                <input type="text" id="from-name" required placeholder="Введіть ваше ім'я та прізвище">
+            </div>
+            <div class="form-group">
+                <label for="to-name">Ім'я та Прізвище (на кого):</label>
+                <i class="fas fa-user-tag"></i>
+                <input type="text" id="to-name" required placeholder="Введіть ім'я та прізвище особи">
+            </div>
+            <div class="form-group">
+                <label for="application-text">Текст заяви:</label>
+                <i class="fas fa-file-alt"></i>
+                <textarea id="application-text" rows="5" required placeholder="Введіть текст заяви"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="evidence">Докази (посилання YouTube):</label>
+                <i class="fas fa-video"></i>
+                <input type="url" id="evidence" required placeholder="Введіть посилання на YouTube">
+            </div>
+            <button type="submit" class="btn">Подати заяву</button>
+        </form>
+        <div id="success-message" class="success-message">Наші найкращі працівники займуться цим!</div>
+        <button id="my-applications-btn" class="btn">Мої заяви</button>
+        <div id="my-applications" class="my-applications">
+            <h2>Мої заяви</h2>
+            <ul id="application-list" class="application-list"></ul>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.5.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCnUIWXZqAMXVxLLNMIcp0ivb9qk-fzwL4",
+            authDomain: "rozhuk-4467c.firebaseapp.com",
+            projectId: "rozhuk-4467c",
+            storageBucket: "rozhuk-4467c.firebasestorage.app",
+            messagingSenderId: "516030103073",
+            appId: "1:516030103073:web:d1d858f0f8556215a22d60",
+            measurementId: "G-BJ4771CGFX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const applicationForm = document.getElementById('application-form');
+            const myApplicationsBtn = document.getElementById('my-applications-btn');
+            const myApplicationsSection = document.getElementById('my-applications');
+            const applicationList = document.getElementById('application-list');
+            const successMessage = document.getElementById('success-message');
+            let currentUserId = localStorage.getItem('currentUserId') || '';
+
+            applicationForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const fromName = document.getElementById('from-name').value;
+                const toName = document.getElementById('to-name').value;
+                const text = document.getElementById('application-text').value;
+                const evidence = document.getElementById('evidence').value;
+                const date = new Date().toLocaleDateString('uk-UA');
+
+                currentUserId = fromName; // Використовуємо ім'я відправника як ідентифікатор
+                localStorage.setItem('currentUserId', currentUserId);
+
+                try {
+                    await addDoc(collection(db, 'applications'), {
+                        fromName,
+                        toName,
+                        text,
+                        evidence,
+                        date,
+                        status: 'На розгляді'
+                    });
+                    applicationForm.reset();
+                    successMessage.style.display = 'block';
+                    setTimeout(() => successMessage.style.display = 'none', 3000); // Сховати через 3 секунди
+                    loadApplications();
+                } catch (error) {
+                    console.error('Помилка при подачі заяви:', error);
+                    alert('Помилка при подачі заяви.');
+                }
+            });
+
+            myApplicationsBtn.addEventListener('click', () => {
+                myApplicationsSection.classList.toggle('active');
+                if (myApplicationsSection.classList.contains('active')) {
+                    loadApplications();
+                }
+            });
+
+            function loadApplications() {
+                if (!currentUserId) {
+                    alert('Спочатку подайте заяву, щоб переглянути ваші заяви.');
+                    return;
+                }
+                onSnapshot(collection(db, 'applications'), (snapshot) => {
+                    applicationList.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const app = doc.data();
+                        if (app.fromName === currentUserId) {
+                            const li = document.createElement('li');
+                            li.className = 'application-item';
+                            li.innerHTML = `
+                                <p><strong>Від кого:</strong> ${app.fromName}</p>
+                                <p><strong>На кого:</strong> ${app.toName}</p>
+                                <p><strong>Текст заяви:</strong> ${app.text}</p>
+                                <p><strong>Докази:</strong> <a href="${app.evidence}" target="_blank">Посилання</a></p>
+                                <p><strong>Дата:</strong> ${app.date}</p>
+                                <p><strong>Статус:</strong> <span class="status ${app.status === 'Схвалено' ? 'approved' : app.status === 'Відмовлено' ? 'rejected' : 'pending'}">${app.status}</span></p>
+                            `;
+                            applicationList.appendChild(li);
+                        }
+                    });
+                });
+            }
+
+            if (currentUserId) {
+                loadApplications();
+            }
+        });
+    </script>
+   
+</body>
+
+</html>
